@@ -55,3 +55,29 @@ def decrypt_text(password: str, b64_token: str) -> str:
         return "ERROR: Kata sandi salah atau data telah dimanipulasi (Gagal verifikasi tag)!"
     except Exception as e:
         return f"ERROR: Format tidak valid atau rusak. Detail: {str(e)}"
+def encrypt_file(password: str, file_data: bytes) -> bytes:
+    """Mengenkripsi byte berkas dengan AES-256-GCM."""
+    salt = os.urandom(16)
+    nonce = os.urandom(12)
+    key = derive_key(password, salt)
+    
+    aesgcm = AESGCM(key)
+    ciphertext = aesgcm.encrypt(nonce, file_data, None)
+    
+    return salt + nonce + ciphertext
+
+def decrypt_file(password: str, encrypted_data: bytes) -> bytes:
+    """Mendekripsi byte berkas kembali ke aslinya."""
+    try:
+        salt = encrypted_data[:16]
+        nonce = encrypted_data[16:28]
+        ciphertext = encrypted_data[28:]
+        
+        key = derive_key(password, salt)
+        aesgcm = AESGCM(key)
+        
+        return aesgcm.decrypt(nonce, ciphertext, None)
+    except InvalidTag:
+        return b"ERROR_TAG"
+    except Exception:
+        return b"ERROR_FORMAT"
